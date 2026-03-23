@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import clsx from 'clsx';
 import { ArrowButton } from 'src/ui/arrow-button';
 import { Button } from 'src/ui/button';
 import { Select } from 'src/ui/select';
@@ -23,14 +24,13 @@ type ArticleParamsFormProps = {
 };
 
 export const ArticleParamsForm = ({ onApply }: ArticleParamsFormProps) => {
-	const [isOpen, setIsOpen] = useState(false);
+	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 	const [formState, setFormState] =
 		useState<ArticleStateType>(defaultArticleState);
-	const [initialState] = useState<ArticleStateType>(defaultArticleState);
 	const sidebarRef = useRef<HTMLDivElement>(null);
 
 	const toggleSidebar = () => {
-		setIsOpen(!isOpen);
+		setIsSidebarOpen(!isSidebarOpen);
 	};
 
 	const handleApply = (event: React.FormEvent) => {
@@ -39,8 +39,12 @@ export const ArticleParamsForm = ({ onApply }: ArticleParamsFormProps) => {
 	};
 
 	const handleReset = () => {
-		setFormState(initialState);
-		onApply(initialState);
+		setFormState(defaultArticleState);
+		onApply(defaultArticleState);
+	};
+
+	const handleCloseSidebar = () => {
+		setIsSidebarOpen(false);
 	};
 
 	const handleCloseByClickOutside = (event: MouseEvent) => {
@@ -48,30 +52,41 @@ export const ArticleParamsForm = ({ onApply }: ArticleParamsFormProps) => {
 			sidebarRef.current &&
 			!sidebarRef.current.contains(event.target as Node)
 		) {
-			setIsOpen(false);
+			handleCloseSidebar();
+		}
+	};
+
+	const handleCloseByEscape = (event: KeyboardEvent) => {
+		if (event.key === 'Escape') {
+			handleCloseSidebar();
 		}
 	};
 
 	useEffect(() => {
-		if (isOpen) {
-			document.addEventListener('mousedown', handleCloseByClickOutside);
-		} else {
-			document.removeEventListener('mousedown', handleCloseByClickOutside);
-		}
+		if (!isSidebarOpen) return;
+
+		document.addEventListener('mousedown', handleCloseByClickOutside);
+		document.addEventListener('keydown', handleCloseByEscape);
+
 		return () => {
 			document.removeEventListener('mousedown', handleCloseByClickOutside);
+			document.removeEventListener('keydown', handleCloseByEscape);
 		};
-	}, [isOpen]);
+	}, [isSidebarOpen]);
 
 	return (
 		<>
-			<ArrowButton isOpen={isOpen} onClick={toggleSidebar} />
+			<ArrowButton isOpen={isSidebarOpen} onClick={toggleSidebar} />
 			<aside
 				ref={sidebarRef}
-				className={`${styles.container} ${
-					isOpen ? styles.container_open : ''
-				}`}>
-				<form className={styles.form} onSubmit={handleApply}>
+				className={clsx(
+					styles.container,
+					isSidebarOpen && styles.container_open
+				)}>
+				<form
+					className={styles.form}
+					onSubmit={handleApply}
+					onReset={handleReset}>
 					<Text as='h2' size={22} weight={800} uppercase>
 						Настройки
 					</Text>
@@ -125,12 +140,7 @@ export const ArticleParamsForm = ({ onApply }: ArticleParamsFormProps) => {
 					/>
 
 					<div className={styles.bottomContainer}>
-						<Button
-							title='Сбросить'
-							htmlType='reset'
-							type='clear'
-							onClick={handleReset}
-						/>
+						<Button title='Сбросить' htmlType='reset' type='clear' />
 						<Button title='Применить' htmlType='submit' type='apply' />
 					</div>
 				</form>
